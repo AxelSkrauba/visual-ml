@@ -9,8 +9,18 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.32%2B-FF4B4B?logo=streamlit)](https://streamlit.io)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4%2B-F7931E?logo=scikit-learn)](https://scikit-learn.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-FF4B4B?logo=streamlit&logoColor=white)](https://visual-ml.streamlit.app/)
 
 ---
+
+## Probar online
+
+La aplicación está disponible públicamente en Streamlit Cloud:
+
+**Demo en vivo:** https://visual-ml.streamlit.app/
+
+No requiere instalación ni registro.
+Para ejecutarla localmente o en Google Colab, revisar la sección [Instalación y ejecución local](#instalación-y-ejecución-local).
 
 ## ¿Qué es Visual ML?
 
