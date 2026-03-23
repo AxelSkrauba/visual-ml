@@ -65,34 +65,28 @@ def render_sidebar() -> dict:
             help="Número total de puntos en el dataset.",
         )
 
-        # Noise parameter — always rendered to keep widget key stable (prevents Streamlit
-        # reordering that causes the dataset selectbox to lose items like "Moons").
-        # Disabled and clamped to 0.0 for 'imbalanced' which uses cluster_std instead.
-        is_imbalanced = dataset_name == "imbalanced"
-        default_noise = ds_cfg.get("default_noise", 0.2)
-        noise_max = 0.5 if dataset_name in ("moons", "blobs") else 0.4
-        if dataset_name == "spirals":
-            noise_max = 0.3
-        if is_imbalanced:
-            noise_max = 0.4
-            default_noise = 0.0
-        noise_raw = st.slider(
-            "Ruido",
-            min_value=0.0,
-            max_value=noise_max,
-            value=min(default_noise, noise_max),
-            step=0.01,
-            key="noise",
-            disabled=is_imbalanced,
-            help="Nivel de ruido añadido al dataset. Más ruido → mayor solapamiento entre clases."
-            if not is_imbalanced
-            else "No aplica para el dataset Desbalanceado (usa Dispersión de clusters).",
-        )
-        noise = 0.0 if is_imbalanced else noise_raw
+        # ── Dataset-specific parameters ──────────────────────────────
+        # Driven by ds_cfg["params"] — the single source of truth.
+        # Only widgets relevant to the selected dataset are rendered.
+        ds_params = ds_cfg.get("params", [])
 
-        # Multi-class support
+        noise = ds_cfg.get("default_noise", 0.2)
         n_classes = 2
-        if ds_cfg.get("supports_multiclass", False):
+        factor = 0.5
+        cluster_std = 1.0
+        imbalance_ratio = 0.1
+
+        if "noise" in ds_params:
+            noise = st.slider(
+                "Ruido",
+                min_value=0.0,
+                max_value=0.5,
+                value=0.20,
+                step=0.01,
+                key="noise",
+                help="Nivel de ruido añadido al dataset. Más ruido → mayor solapamiento entre clases.",
+            )
+        if "n_classes" in ds_params:
             n_classes = st.slider(
                 "Clases (n)",
                 min_value=2,
@@ -102,12 +96,7 @@ def render_sidebar() -> dict:
                 key="n_classes",
                 help="Número de clases. Datasets binarios (Moons, Circles, XOR) son fijos en 2.",
             )
-
-        # Dataset-specific params
-        factor = 0.5
-        cluster_std = 1.0
-        imbalance_ratio = 0.1
-        if dataset_name == "circles":
+        if "factor" in ds_params:
             factor = st.slider(
                 "Factor (radio interno/externo)",
                 min_value=0.1,
@@ -117,7 +106,7 @@ def render_sidebar() -> dict:
                 key="factor",
                 help="Proporción del radio del círculo interno vs externo.",
             )
-        if dataset_name in ("blobs", "imbalanced"):
+        if "cluster_std" in ds_params:
             cluster_std = st.slider(
                 "Dispersión de clusters (std)",
                 min_value=0.3,
@@ -127,7 +116,7 @@ def render_sidebar() -> dict:
                 key="cluster_std",
                 help="Desviación estándar de cada cluster gaussiano. Valores altos → solapamiento.",
             )
-        if dataset_name == "imbalanced":
+        if "imbalance_ratio" in ds_params:
             imbalance_ratio = st.slider(
                 "Ratio de minoría (%)",
                 min_value=5,

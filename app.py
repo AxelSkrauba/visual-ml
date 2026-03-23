@@ -61,6 +61,11 @@ def _inject_theme_css(theme: str) -> None:
     # Image overlay (fullscreen button) colors
     overlay_bg = "#1e2538" if theme == "dark" else "#f0f2f6"
     overlay_text = "#e8eaf0" if theme == "dark" else "#1a1d23"
+    # Help icon color — HelpCircle uses stroke-based SVG (fill=none, stroke=currentColor)
+    help_icon_color = "#9da5b4" if theme == "dark" else "#4a5568"
+    # Multiselect tag colors
+    tag_bg_color = accent2 if theme == "dark" else "#d0e7f5"
+    tag_text_color = "#ffffff" if theme == "dark" else "#0d3d5c"
 
     css = f"""
     <style>
@@ -155,23 +160,6 @@ def _inject_theme_css(theme: str) -> None:
         [data-testid="stNumberInput"] [data-testid="stNumberInputStepDown"] svg,
         [data-testid="stNumberInput"] [data-testid="stNumberInputStepUp"] svg {{
             fill: {text} !important;
-        }}
-
-        /* ── Help/tooltip trigger icon (?) — SVG fill for visibility ── */
-        [data-testid="stWidgetHelp"] button,
-        [data-testid="stTooltipIcon"] button,
-        button[data-testid="tooltipHoverTarget"] {{
-            background: transparent !important;
-            border: none !important;
-        }}
-        [data-testid="stWidgetHelp"] svg,
-        [data-testid="stTooltipIcon"] svg,
-        button[data-testid="tooltipHoverTarget"] svg,
-        [data-testid="stWidgetHelp"] path,
-        [data-testid="stTooltipIcon"] path,
-        button[data-testid="tooltipHoverTarget"] path {{
-            fill: {subtext} !important;
-            color: {subtext} !important;
         }}
 
         /* ── Image fullscreen overlay (body portal) ── */
@@ -291,8 +279,12 @@ def _inject_theme_css(theme: str) -> None:
 
         /* ── Multiselect tags ── */
         [data-baseweb="tag"] {{
-            background-color: {accent2} !important;
-            color: #ffffff !important;
+            background-color: {tag_bg_color} !important;
+            color: {tag_text_color} !important;
+            border: 1px solid {border2} !important;
+        }}
+        [data-baseweb="tag"] span {{
+            color: {tag_text_color} !important;
         }}
 
         /* ── Tabs ── */
@@ -384,6 +376,22 @@ def _inject_theme_css(theme: str) -> None:
         /* ── Footer ── */
         footer, footer * {{
             color: {subtext} !important;
+        }}
+
+        /* ── Help/tooltip trigger icon (?) — stroke-based SVG (HelpCircle) ──
+           MUST come AFTER the sidebar blanket rule to win the cascade.
+           The icon uses fill:none + stroke:currentColor, so we set
+           color (which currentColor inherits) and stroke explicitly. */
+        [data-testid="stTooltipIcon"] button,
+        button[data-testid="tooltipHoverTarget"] {{
+            background: transparent !important;
+            border: none !important;
+        }}
+        [data-testid="stTooltipIcon"] svg,
+        button[data-testid="tooltipHoverTarget"] svg,
+        section[data-testid="stSidebar"] [data-testid="stTooltipIcon"] svg {{
+            color: {help_icon_color} !important;
+            stroke: {help_icon_color} !important;
         }}
     </style>
     """
