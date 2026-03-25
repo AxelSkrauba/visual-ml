@@ -1,6 +1,6 @@
 # 🧠 Visual ML
 
-> Explorador interactivo de fronteras de decisión para modelos clásicos de Machine Learning.  
+> Explorador interactivo de **clasificación** y **regresión** para modelos clásicos de Machine Learning.  
 > Diseñado para la enseñanza de IA en cursos de ingeniería.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/AxelSkrauba/visual-ml/blob/main/notebooks/visual_ml_colab.ipynb)
@@ -24,18 +24,22 @@ Para ejecutarla localmente o en Google Colab, revisar la sección [Instalación 
 
 ## ¿Qué es Visual ML?
 
-Visual ML es una herramienta pedagógica interactiva que permite explorar intuitivamente cómo los modelos clásicos de ML separan las clases en un espacio de dos features. Visualiza en tiempo real cómo cambia la **frontera de decisión** al modificar hiperparámetros, tipo de dataset y nivel de ruido.
+Visual ML es una herramienta pedagógica interactiva que permite explorar intuitivamente cómo los modelos clásicos de ML separan clases (clasificación) o ajustan curvas (regresión) en un espacio de dos features. Visualiza en tiempo real cómo cambia la **frontera de decisión** o la **curva de predicción** al modificar hiperparámetros, tipo de dataset y nivel de ruido.
 
 ### Conceptos que se pueden explorar
-- **Overfitting y underfitting** — observa la brecha train/test en métricas y frontera.
-- **Complejidad del modelo** — desde fronteras lineales hasta espirales complejas.
-- **Impacto de hiperparámetros** — C en SVM, max_depth en Decision Tree, K en KNN, capas en MLP, etc.
+- **Overfitting y underfitting** — observa la brecha train/test en métricas y frontera/curva.
+- **Complejidad del modelo** — desde fronteras lineales hasta espirales complejas; desde rectas hasta curvas no lineales.
+- **Impacto de hiperparámetros** — C en SVM/SVR, max_depth en árboles, K en KNN, capas en MLP, alpha en Ridge/Lasso, etc.
 - **Comparación de algoritmos** — hasta 6 modelos lado a lado sobre el mismo dataset.
 - **Desbalance de clases** — efecto en accuracy vs F1 con dataset configurable.
+- **Análisis de residuos** — detecta heterocedasticidad y patrones en errores de regresión.
+- **Métricas de regresión** — R², RMSE, MAE con señales pedagógicas automáticas.
 
 ---
 
 ## Modelos incluidos
+
+### Clasificación (11 modelos)
 
 | Grupo | Modelos |
 |---|---|
@@ -48,7 +52,20 @@ Visual ML es una herramienta pedagógica interactiva que permite explorar intuit
 | **Ensemble Boosting** | Gradient Boosting, AdaBoost |
 | **Probabilístico** | Gaussian Naive Bayes, QDA |
 
+### Regresión (8 modelos)
+
+| Grupo | Modelos |
+|---|---|
+| **Lineales** | Linear Regression, Ridge, Lasso |
+| **Kernel / Margen** | SVR (lineal, RBF, poly) |
+| **Vecindad** | KNN Regressor |
+| **Árbol** | Decision Tree Regressor |
+| **Ensemble** | Random Forest Regressor |
+| **Red Neuronal** | MLP Regressor |
+
 ## Datasets de juguete
+
+### Clasificación (7 datasets)
 
 | Dataset | Descripción | Clases |
 |---|---|---|
@@ -59,6 +76,16 @@ Visual ML es una herramienta pedagógica interactiva que permite explorar intuit
 | **Linear** | Linealmente separable | 2–5 |
 | **Spirals** | Espirales entrelazadas | 2–5 |
 | **Desbalanceado** | Clases gaussianas con ratio de minoría configurable (5–50%) | 2 |
+
+### Regresión (5 datasets)
+
+| Dataset | Descripción |
+|---|---|
+| **Lineal** | Relación lineal simple con ruido gaussiano |
+| **Polinomial** | Curva polinómica de grado configurable (1–6) |
+| **Sinusoidal** | Onda sinusoidal con frecuencia ajustable |
+| **Escalón** | Función escalonada con saltos abruptos |
+| **Exponencial** | Crecimiento exponencial con ruido |
 
 ---
 
@@ -125,11 +152,19 @@ El notebook usa el port forwarding **nativo de Google Colab** (`serve_kernel_por
 python -m pytest tests/ -v --tb=short
 ```
 
-La suite de tests cubre todos los módulos core con TDD (150+ tests):
+La suite de tests cubre todos los módulos core con TDD (270+ tests):
+
+**Clasificación:**
 - `test_datasets.py` — generación, shapes, reproducibilidad, multi-clase, dataset desbalanceado.
 - `test_models.py` — registro, metadatos, defaults, instanciación, MLP string parsing.
 - `test_train.py` — métricas, rangos válidos, señales pedagógicas (7 escenarios).
 - `test_visualization.py` — figuras correctas para todos los modelos/temas.
+
+**Regresión:**
+- `test_datasets_regression.py` — 5 generadores, shapes, reproducibilidad, noise, parámetros.
+- `test_models_regression.py` — 8 modelos, instanciación, hyperparams, grupos.
+- `test_train_regression.py` — R², RMSE, MAE, señales pedagógicas.
+- `test_visualization_regression.py` — prediction curve, residuos, prediction error, comparación.
 
 ---
 
@@ -152,38 +187,52 @@ visual-ml/
 │   └── workflows/
 │       └── ci.yml              # GitHub Actions CI
 ├── core/
-│   ├── datasets.py             # Generadores de datasets parametrizables (7 tipos)
-│   ├── models.py               # Registro declarativo de modelos (11 modelos)
-│   ├── train.py                # Entrenamiento + evaluación + señales pedagógicas
-│   └── visualization.py        # Frontera de decisión, CM, comparación
+│   ├── datasets.py             # Generadores de datasets de clasificación (7 tipos)
+│   ├── datasets_regression.py  # Generadores de datasets de regresión (5 tipos)
+│   ├── models.py               # Registro de modelos de clasificación (11 modelos)
+│   ├── models_regression.py    # Registro de modelos de regresión (8 modelos)
+│   ├── train.py                # Entrenamiento + evaluación (clasificación)
+│   ├── train_regression.py     # Entrenamiento + evaluación (regresión)
+│   ├── visualization.py        # Frontera de decisión, CM, comparación
+│   └── visualization_regression.py  # Curva predicción, residuos, error
 ├── ui/
-│   ├── sidebar.py              # Controles interactivos
-│   ├── single_view.py          # Tab: exploración de un modelo
-│   └── compare_view.py         # Tab: comparación multi-modelo
+│   ├── sidebar.py              # Controles interactivos (Clasificación/Regresión)
+│   ├── single_view.py          # Tab: exploración clasificación
+│   ├── single_view_regression.py  # Tab: exploración regresión
+│   ├── compare_view.py         # Tab: comparación clasificación
+│   └── compare_view_regression.py  # Tab: comparación regresión
 ├── notebooks/
 │   └── visual_ml_colab.ipynb   # Notebook para Google Colab
 └── tests/
     ├── conftest.py
     ├── test_datasets.py
+    ├── test_datasets_regression.py
     ├── test_models.py
+    ├── test_models_regression.py
     ├── test_train.py
-    └── test_visualization.py
+    ├── test_train_regression.py
+    ├── test_visualization.py
+    └── test_visualization_regression.py
 ```
 
 ---
 
 ## Interfaz
 
-### Tab: Explorar Modelo
-- Sidebar: selección de dataset (7), modelo (11) e hiperparámetros dinámicos.
-- Panel izquierdo: frontera de decisión con puntos train y test.
-- Panel derecho: tabla de métricas con semáforo, matriz de confusión (RdBu divergente), classification report parseado.
+### Clasificación
+- **Explorar:** frontera de decisión, métricas (accuracy, precision, recall, F1), matriz de confusión, classification report.
+- **Comparar:** grid de fronteras de decisión, barras comparativas, tabla resumen.
 - Señales pedagógicas automáticas: overfitting, underfitting, desbalance, memorización.
 
-### Tab: Comparar Modelos
-- Grid de fronteras de decisión para múltiples modelos simultáneos.
-- Gráfico de barras comparativo (Accuracy y F1 — train vs test).
-- Tabla resumen con badges de estado.
+### Regresión
+- **Explorar:** curva de predicción, métricas (R², RMSE, MAE), gráfico de error de predicción, residuos train/test.
+- **Comparar:** grid de curvas de predicción, barras comparativas, tabla resumen.
+- Señales pedagógicas: overfitting, underfitting, heterocedasticidad, R² negativo.
+
+### Sidebar
+- Selector de paradigma (Clasificación / Regresión) al inicio.
+- Datasets y modelos cambian dinámicamente según el paradigma seleccionado.
+- Hiperparámetros con tooltips pedagógicos en español.
 
 ### Temas
 - **Oscuro** (por defecto): ideal para pantallas.
