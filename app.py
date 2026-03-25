@@ -2,10 +2,13 @@ import streamlit as st
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from core.datasets import generate_dataset
+from core.datasets import generate_dataset, DATASET_CONFIGS
+from core.datasets_regression import generate_regression_dataset, REGRESSION_DATASET_CONFIGS
 from ui.sidebar import render_sidebar
 from ui.single_view import render_single_view
 from ui.compare_view import render_compare_view
+from ui.single_view_regression import render_single_view_regression
+from ui.compare_view_regression import render_compare_view_regression
 
 
 # ── Page configuration ───────────────────────────────────────────────────────
@@ -398,7 +401,7 @@ def _inject_theme_css(theme: str) -> None:
     st.markdown(css, unsafe_allow_html=True)
 
 
-# ── Cached data generation ───────────────────────────────────────────────────
+# ── Cached data generation ───────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def _get_dataset(dataset_name, n_samples, noise, n_classes, factor, cluster_std, imbalance_ratio, random_seed):
     return generate_dataset(
@@ -413,6 +416,19 @@ def _get_dataset(dataset_name, n_samples, noise, n_classes, factor, cluster_std,
     )
 
 
+@st.cache_data(show_spinner=False)
+def _get_regression_dataset(dataset_name, n_samples, noise, degree, frequency, n_steps, random_seed):
+    return generate_regression_dataset(
+        name=dataset_name,
+        n_samples=n_samples,
+        random_state=random_seed,
+        noise=noise,
+        degree=degree,
+        frequency=frequency,
+        n_steps=n_steps,
+    )
+
+
 # ── Main app ─────────────────────────────────────────────────────────────────
 def main():
     cfg = render_sidebar()
@@ -420,26 +436,38 @@ def main():
     theme = cfg["theme"]
     _inject_theme_css(theme)
 
-    # ── Header ───────────────────────────────────────────────────────────
+    # ── Header ─────────────────────────────────────────────────────────
+    is_regression = cfg["paradigm"] == "Regresión"
     text_color = "#e8eaf0" if theme == "dark" else "#1a1d23"
     subtext_color = "#9da5b4" if theme == "dark" else "#5a6270"
+    subtitle = (
+        "Exploración interactiva de curvas de predicción · Modelos de Regresión"
+        if is_regression
+        else "Exploración interactiva de fronteras de decisión · Modelos clásicos de Machine Learning"
+    )
     st.markdown(
         f"<h1 style='margin-bottom:0; color:{text_color};'>🧠 Visual ML</h1>"
-        f"<p style='margin-top:4px; color:{subtext_color}; font-size:1rem;'>"
-        f"Exploración interactiva de fronteras de decisión · Modelos clásicos de Machine Learning</p>",
+        f"<p style='margin-top:4px; color:{subtext_color}; font-size:1rem;'>{subtitle}</p>",
         unsafe_allow_html=True,
     )
     st.markdown("---")
 
-    # ── Data generation ───────────────────────────────────────────────────
+    if is_regression:
+        _run_regression(cfg)
+    else:
+        _run_classification(cfg)
+
+
+def _run_classification(cfg: dict) -> None:
+    """Classification pipeline: data generation, info bar, tabs."""
     X, y = _get_dataset(
         cfg["dataset_name"],
         cfg["n_samples"],
         cfg["noise"],
-        cfg["n_classes"],
-        cfg["factor"],
-        cfg["cluster_std"],
-        cfg["imbalance_ratio"],
+        cfg.get("n_classes", 2),
+        cfg.get("factor", 0.5),
+        cfg.get("cluster_std", 1.0),
+        cfg.get("imbalance_ratio", 0.1),
         cfg["random_seed"],
     )
 
@@ -452,7 +480,6 @@ def main():
     )
 
     # ── Dataset info bar ─────────────────────────────────────────────────
-    from core.datasets import DATASET_CONFIGS
     ds_cfg = DATASET_CONFIGS[cfg["dataset_name"]]
     n_train, n_test = len(y_train), len(y_test)
     n_classes_actual = len(np.unique(y))
@@ -463,14 +490,14 @@ def main():
     info_cols[2].metric("Train / Test", f"{n_train} / {n_test}")
     info_cols[3].metric("Clases", n_classes_actual)
     if cfg["dataset_name"] == "imbalanced":
-        minority_pct = cfg["imbalance_ratio"] * 100
+        minority_pct = cfg.get("imbalance_ratio", 0.1) * 100
         info_cols[4].metric("Minoría", f"{minority_pct:.0f}%")
     else:
         info_cols[4].metric("Ruido", f"{cfg['noise']:.2f}")
 
     st.markdown("---")
 
-    # ── Tabs ─────────────────────────────────────────────────────────────
+    # ── Tabs ─────────────────────────────────────────────────────────
     tab_explore, tab_compare = st.tabs(["🔬 Explorar Modelo", "🆚 Comparar Modelos"])
 
     with tab_explore:
@@ -488,6 +515,59 @@ def main():
         else:
             if st.button("▶️ Comparar modelos", type="primary", use_container_width=False, key="btn_compare"):
                 render_compare_view(cfg, X_train, X_test, y_train, y_test)
+            else:
+                st.info("Presiona **▶️ Comparar modelos** para ver los resultados (modo manual activo).")
+
+
+def _run_regression(cfg: dict) -> None:
+    """Regression pipeline: data generation, info bar, tabs."""
+    X, y = _get_regression_dataset(
+        cfg["dataset_name"],
+        cfg["n_samples"],
+        cfg["noise"],
+        cfg.get("degree", 3),
+        cfg.get("frequency", 1.5),
+        cfg.get("n_steps", 3),
+        cfg["random_seed"],
+    )
+
+    test_size = 1.0 - cfg["train_test_split"] / 100.0
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y,
+        test_size=test_size,
+        random_state=cfg["random_seed"],
+    )
+
+    # ── Dataset info bar ─────────────────────────────────────────────────
+    ds_cfg = REGRESSION_DATASET_CONFIGS[cfg["dataset_name"]]
+    n_train, n_test = len(y_train), len(y_test)
+
+    info_cols = st.columns(4)
+    info_cols[0].metric("Dataset", ds_cfg["label"])
+    info_cols[1].metric("Muestras", cfg["n_samples"])
+    info_cols[2].metric("Train / Test", f"{n_train} / {n_test}")
+    info_cols[3].metric("Ruido (σ)", f"{cfg['noise']:.2f}")
+
+    st.markdown("---")
+
+    # ── Tabs ─────────────────────────────────────────────────────────
+    tab_explore, tab_compare = st.tabs(["🔬 Explorar Modelo", "🆚 Comparar Modelos"])
+
+    with tab_explore:
+        if cfg["auto_update"]:
+            render_single_view_regression(cfg, X_train, X_test, y_train, y_test)
+        else:
+            if st.button("▶️ Entrenar y visualizar", type="primary", use_container_width=False):
+                render_single_view_regression(cfg, X_train, X_test, y_train, y_test)
+            else:
+                st.info("Presiona **▶️ Entrenar y visualizar** para ver los resultados (modo manual activo).")
+
+    with tab_compare:
+        if cfg["auto_update"]:
+            render_compare_view_regression(cfg, X_train, X_test, y_train, y_test)
+        else:
+            if st.button("▶️ Comparar modelos", type="primary", use_container_width=False, key="btn_compare_reg"):
+                render_compare_view_regression(cfg, X_train, X_test, y_train, y_test)
             else:
                 st.info("Presiona **▶️ Comparar modelos** para ver los resultados (modo manual activo).")
 
